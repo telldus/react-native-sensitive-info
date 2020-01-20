@@ -22,7 +22,9 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.WritableNativeArray;
 import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
@@ -116,7 +118,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void isHardwareDetected(final Promise pm) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && mFingerprintManager != null) {
             pm.resolve(mFingerprintManager.isHardwareDetected());
         } else {
             pm.resolve(false);
@@ -125,7 +127,7 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void hasEnrolledFingerprints(final Promise pm) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && mFingerprintManager != null) {
             pm.resolve(mFingerprintManager.hasEnrolledFingerprints());
         } else {
             pm.resolve(false);
@@ -188,20 +190,26 @@ public class RNSensitiveInfoModule extends ReactContextBaseJavaModule {
         pm.resolve(null);
     }
 
-
     @ReactMethod
     public void getAllItems(ReadableMap options, Promise pm) {
 
         String name = sharedPreferences(options);
 
         Map<String, ?> allEntries = prefs(name).getAll();
-        WritableMap resultData = new WritableNativeMap();
+        WritableArray resultData = new WritableNativeArray();
 
         for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
-            String value = entry.getValue().toString();
-            resultData.putString(entry.getKey(), value);
+            WritableMap entryMap = new WritableNativeMap();
+
+            entryMap.putString("key", entry.getKey());
+            entryMap.putString("value", entry.getValue().toString());
+            entryMap.putString("service", name);
+            resultData.pushMap(entryMap);
         }
-        pm.resolve(resultData);
+
+        WritableArray resultWrapper = new WritableNativeArray();
+        resultWrapper.pushArray(resultData);
+        pm.resolve(resultWrapper);
     }
 
     @ReactMethod
